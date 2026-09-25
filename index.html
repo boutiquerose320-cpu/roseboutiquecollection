@@ -1,1405 +1,530 @@
-<html lang="en" class="scroll-smooth"><head><script data-bard-client-injected="true">(function(firebaseConfig, initialAuthToken, appId) {
-        window.__firebase_config = firebaseConfig;
-        window.__initial_auth_token = initialAuthToken;
-        window.__app_id = appId;
-            })("\n{\n  \"apiKey\": \"AIzaSyCqyCcs2R2e7AegGjvFAwG98wlamtbHvZY\",\n  \"authDomain\": \"bard-frontend.firebaseapp.com\",\n  \"projectId\": \"bard-frontend\",\n  \"storageBucket\": \"bard-frontend.firebasestorage.app\",\n  \"messagingSenderId\": \"175205271074\",\n  \"appId\": \"1:175205271074:web:2b7bd4d34d33bf38e6ec7b\"\n}\n","eyJhbGciOiJSUzI1NiIsImtpZCI6IjExNjRiNzdiNDMzZDdhMDAyMWI4NjE4YjhjYTU3ZTMyZGI5MWUxMTMiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiJmaXJlYmFzZS1hZG1pbnNkay1mYnN2Y0BiYXJkLWZyb250ZW5kLmlhbS5nc2VydmljZWFjY291bnQuY29tIiwiYXVkIjoiaHR0cHM6Ly9pZGVudGl0eXRvb2xraXQuZ29vZ2xlYXBpcy5jb20vZ29vZ2xlLmlkZW50aXR5LmlkZW50aXR5dG9vbGtpdC52MS5JZGVudGl0eVRvb2xraXQiLCJ1aWQiOiIwNjMxNjA4MDQzNjE1ODU2ODQxMyIsImlzcyI6ImZpcmViYXNlLWFkbWluc2RrLWZic3ZjQGJhcmQtZnJvbnRlbmQuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLCJjbGFpbXMiOnsiYXBwSWQiOiJjX2RjNjc3MWU0MDczOTI5MzBfaW5kZXguaHRtbC02NDgifSwiZXhwIjoxNzkwMzMzMTkwLCJpYXQiOjE3OTAzMjk1OTAsImFsZyI6IlJTMjU2In0.iItz-QncHaR475vLvfN3jVgtt7MPoXauIKXReqse_iPcRZMWQy2GhxG2pYS37eHjo06scteTQZaOjy2t4H-pNID8wIWrfwFwLANpH3sOef6JSqRixN_Tc-PF8az--HwcB8LUl7sv-arhi6eA-qtmfWoler4s9qiIZpv01BfTQByjlKHSmzLJbnnraB3U8bXEWkuWGAfiAfJr2ngdPccrmAbPHET8fA1S_DRv8Tbr42Wq1wRQlN-0NJa9SGbgm7CHVTdxW2ik5D1cCXbUPAZLPOIgTa9Z9RUgu09eEGrYuGuO0ij6hfdK7FDfq1YmvJm2U8Q8jyVBH9ef4Mz8kVGcsg","c_dc6771e407392930_index.html-648")</script><script data-bard-client-injected="true">
-  document.addEventListener('input', (event) => {
-    if (event.target && (event.target.isContentEditable || event.target.hasAttribute('contenteditable'))) {
-      const clonedDoc = document.cloneNode(true);
-      const injectedScripts = clonedDoc.querySelectorAll('[data-bard-client-injected="true"]');
-      injectedScripts.forEach(el => el.remove());
-      window.parent.postMessage({
-        type: 'inlineEdit',
-        html: '<!DOCTYPE html>\n' + clonedDoc.documentElement.outerHTML
-      }, '*');
-    }
-  });
-</script><script data-bard-client-injected="true">(function(){'use strict';window.addEventListener("message",a=>{a.data&&a.data.type==="SUPPLEMENTAL_DATA_UPDATE"&&window.dispatchEvent(new CustomEvent("supplementaldataupdate",{detail:a.data.data}))});}).call(this);
-</script><script data-bard-client-injected="true">(function() {
-  const SCROLL_KEYS = new Set([
-    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
-    ' ', 'Spacebar', 'PageUp', 'PageDown', 'Home', 'End',
-  ]);
-  const HORIZONTAL_KEYS = new Set(['ArrowLeft', 'ArrowRight']);
-
-  function isTextEntryTarget(target) {
-    if (!target) return false;
-    const tagName = target.tagName;
-    return tagName === 'INPUT' || tagName === 'TEXTAREA' ||
-        tagName === 'SELECT' || target.isContentEditable === true;
-  }
-
-  // An element absorbs the key only if it both overflows on the axis being
-  // scrolled and is configured to scroll on that axis. The cheap dimension
-  // test runs first because getComputedStyle forces a style recalc, and this
-  // runs on every keypress. Each axis is read from its own longhand: the
-  // 'overflow' shorthand serializes as two values when the axes differ, which
-  // is the common 'overflow-x: hidden; overflow-y: auto' pane.
-  function canScroll(node, horizontal) {
-    const overflows = horizontal ? node.scrollWidth > node.clientWidth
-                                 : node.scrollHeight > node.clientHeight;
-    if (!overflows) return false;
-    const style = window.getComputedStyle(node);
-    const overflow = horizontal ? style.overflowX : style.overflowY;
-    return overflow === 'auto' || overflow === 'scroll';
-  }
-
-  // Walks up from the event target so nested scrollers keep their behavior.
-  // <body> is included because pages that pin the root height make it the
-  // scroll container.
-  function hasScrollableAncestor(target, horizontal) {
-    let node = target;
-    while (node && node !== document.documentElement) {
-      if (canScroll(node, horizontal)) return true;
-      node = node.parentElement;
-    }
-    return false;
-  }
-
-  function rootCanScroll(horizontal) {
-    const scroller = document.scrollingElement || document.documentElement;
-    if (!scroller) return false;
-    // Tolerate a pixel of rounding so subpixel layouts do not look scrollable.
-    return horizontal ? scroller.scrollWidth > window.innerWidth + 1
-                      : scroller.scrollHeight > window.innerHeight + 1;
-  }
-
-  window.addEventListener('keydown', function(event) {
-    if (!SCROLL_KEYS.has(event.key)) return;
-    if (event.defaultPrevented) return;
-    // Alt and Meta turn arrows into browser history navigation, and Ctrl is
-    // reserved for shortcuts, so none of them are scroll intent.
-    if (event.altKey || event.metaKey || event.ctrlKey) return;
-
-    const target = event.target;
-    if (isTextEntryTarget(target)) return;
-
-    // Anything that can still absorb the scroll gets to keep it.
-    const horizontal = HORIZONTAL_KEYS.has(event.key);
-    if (rootCanScroll(horizontal)) return;
-    if (hasScrollableAncestor(target, horizontal)) return;
-
-    event.preventDefault();
-  }, {capture: true, passive: false});
-})();</script><script data-bard-client-injected="true">(function() {
-  // Ensure this script is executed only once
-  if (window.firebaseAuthBridgeScriptLoaded) {
-    return;
-  }
-  window.firebaseAuthBridgeScriptLoaded = true;
-
-  let nextTokenPromiseId = 0;
-
-  // Stores { resolve, reject } for ongoing token requests
-  const pendingTokenPromises = {};
-
-  // Listen for messages from the Host Application
-  window.addEventListener('message', function(event) {
-
-    const messageData = event.data;
-
-  if (messageData && messageData.type === 'RESOLVE_NEW_FIREBASE_TOKEN') {
-      const { success, token, error, promiseId } = messageData ?? {};
-      if (pendingTokenPromises[promiseId]) {
-        if (success) {
-          pendingTokenPromises[promiseId].resolve(token);
-        } else {
-          pendingTokenPromises[promiseId].reject(new Error(error || 'Token refresh failed from host.'));
-        }
-        delete pendingTokenPromises[promiseId];
-      }
-    }
-  });
-
-  // Expose a function for the Generated App to request a new Firebase token
-  window.requestNewFirebaseToken = function() {
-    const currentPromiseId = nextTokenPromiseId++;
-    const promise = new Promise((resolve, reject) => {
-      pendingTokenPromises[currentPromiseId] = { resolve, reject };
-    });
-    if (window.parent && window.parent !== window) {
-      window.parent.postMessage({
-        type: 'REQUEST_NEW_FIREBASE_TOKEN',
-        promiseId: currentPromiseId
-      }, '*');
-    } else {
-      pendingTokenPromises[currentPromiseId].reject(new Error('No parent window to request token from.'));
-      delete pendingTokenPromises[currentPromiseId];
-    }
-    return promise;
-  };
-})();</script><script data-bard-client-injected="true">
-let realOriginalGetUserMedia = null;
-if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-  realOriginalGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-}
-
-(function() {
-  if (navigator.mediaDevices && navigator.mediaDevices.__proto__) {
-    try {
-      Object.defineProperty(navigator.mediaDevices.__proto__, 'getUserMedia', {
-        get: function() {
-          return undefined; // Or throw an error
-        },
-        configurable: false
-      });
-    } catch (error) {
-      console.error("Error defining prototype getter:", error);
-    }
-  }
-})();
-
-(function() {
-  const pendingMediaResolvers = {};
-  let nextMediaPromiseId = 0;
-
-  function requestMediaPermissions(constraints) {
-    const mediaPromiseId = nextMediaPromiseId++;
-    const promise = new Promise((resolve, reject) => {
-      pendingMediaResolvers[mediaPromiseId] = (granted) => {
-        delete pendingMediaResolvers[mediaPromiseId];
-        resolve(granted);
-      };
-    });
-
-    window.parent.postMessage({
-      type: 'requestMediaPermission',
-      constraints: constraints,
-      promiseId: mediaPromiseId,
-    }, '*');
-
-    return promise;
-  }
-
-  let originalGetUserMedia = realOriginalGetUserMedia;
-
-  function interceptGetUserMedia() {
-    if (navigator.mediaDevices) {
-      Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
-        value: function(constraints) {
-          return requestMediaPermissions(constraints).then((granted) => {
-            if (granted) {
-              if (originalGetUserMedia) {
-                return originalGetUserMedia(constraints);
-              } else {
-                throw new Error("Original getUserMedia not available.");
-              }
-            } else {
-              throw new DOMException('Permission denied', 'NotAllowedError');
-            }
-          });
-        },
-        writable: false,
-        configurable: false
-      });
-    }
-  }
-
-  interceptGetUserMedia();
-
-  const observer = new MutationObserver(function(mutationsList, observer) {
-    for (const mutation of mutationsList) {
-      if (mutation.type === 'reconfigured' && mutation.name === 'getUserMedia' && mutation.object === navigator.mediaDevices) {
-        interceptGetUserMedia();
-      } else if (mutation.type === 'attributes' && mutation.attributeName === 'getUserMedia' && mutation.target === navigator.mediaDevices) {
-        interceptGetUserMedia();
-      } else if (mutation.type === 'childList' && mutation.addedNodes) {
-        mutation.addedNodes.forEach(node => {
-          if (node === navigator.mediaDevices) {
-            interceptGetUserMedia();
-          }
-        });
-      }
-    }
-  });
-
-  function interceptSpeechRecognition() {
-    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-      return;
-    }
-
-    const OriginalSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    const SpeechRecognitionWrapper = function(...args) {
-      const recognizer = new OriginalSpeechRecognition(...args);
-      const originalStart = recognizer.start.bind(recognizer);
-
-      recognizer.start = function() {
-        requestMediaPermissions({ audio: true }).then(granted => {
-          if (granted) {
-            originalStart();
-          } else {
-            const errorEvent = new SpeechRecognitionErrorEvent('error');
-            errorEvent.error = 'not-allowed'; // This is the standard error for permission denial.
-            recognizer.dispatchEvent(errorEvent);
-          }
-        });
-      };
-
-      return recognizer;
-    };
-
-    SpeechRecognitionWrapper.prototype = OriginalSpeechRecognition.prototype;
-    SpeechRecognitionWrapper.prototype.constructor = SpeechRecognitionWrapper;
-
-    if (window.SpeechRecognition) {
-      window.SpeechRecognition = SpeechRecognitionWrapper;
-    }
-    if (window.webkitSpeechRecognition) {
-      window.webkitSpeechRecognition = SpeechRecognitionWrapper;
-    }
-  }
-
-  interceptSpeechRecognition();
-
-  window.addEventListener('message', function(event) {
-    if (event.data) {
-      if (event.data.type === 'resolveMediaPermission') {
-        const { promiseId, granted } = event.data;
-        if (pendingMediaResolvers[promiseId]) {
-          pendingMediaResolvers[promiseId](granted);
-        }
-      }
-    }
-  });
-
-})();</script><script ws-interception-config="{&quot;parentOrigin&quot;:&quot;https://gemini.google.com&quot;,&quot;proxiedDomains&quot;:[]}" data-bard-client-injected="true">(function(){'use strict';var u=typeof Object.defineProperties=="function"?Object.defineProperty:function(b,d,e){if(b==Array.prototype||b==Object.prototype)return b;b[d]=e.value;return b};function v(b){b=["object"==typeof globalThis&&globalThis,b,"object"==typeof window&&window,"object"==typeof self&&self,"object"==typeof global&&global];for(var d=0;d<b.length;++d){var e=b[d];if(e&&e.Math==Math)return e}throw Error("Cannot find global object");}var w=v(this);
-function y(b,d){if(d)a:{var e=w;b=b.split(".");for(var h=0;h<b.length-1;h++){var k=b[h];if(!(k in e))break a;e=e[k]}b=b[b.length-1];h=e[b];d=d(h);d!=h&&d!=null&&u(e,b,{configurable:!0,writable:!0,value:d})}}function z(b){function d(h){return b.next(h)}function e(h){return b.throw(h)}return new Promise(function(h,k){function m(n){n.done?h(n.value):Promise.resolve(n.value).then(d,e).then(m,k)}m(b.next())})}y("globalThis",function(b){return b||w});/*
-
- Copyright The Closure Library Authors.
- SPDX-License-Identifier: Apache-2.0
-*/
-function A(b,d){function e(){}e.prototype=d.prototype;b.j=d.prototype;b.prototype=new e;b.prototype.constructor=b;b.h=function(h,k,m){for(var n=Array(arguments.length-2),p=2;p<arguments.length;p++)n[p-2]=arguments[p];return d.prototype[k].apply(h,n)}};function B(b,d,e="*"){function h(a){if(typeof a==="string")return F.encode(a).buffer;if(a instanceof ArrayBuffer)return a.slice(0);if(ArrayBuffer.isView(a))return a.buffer.slice(a.byteOffset,a.byteOffset+a.byteLength);throw Error("Invalid data type");}function k(a){a=h(a);var f={type:"send",data:new Uint8Array(a)},g;(g=r)==null||g.postMessage(f,[a])}function m(){if(!r)throw Error("Data port not captured yet.");r.onmessage=a=>{if(a.data.type==="message"){a=new MessageEvent("message",{data:G.decode(a.data.data)});
-let f;(f=c.onmessage)==null||f.call(c,a);c.dispatchEvent(a)}}}function n(){if(!t)throw Error("Control port not captured yet.");t.onmessage=a=>{switch(a.data.type){case "open":l=1;var f=new Event("open"),g;(g=c.onopen)==null||g.call(c,f);c.dispatchEvent(f);q.forEach(H=>{k(H)});q=[];break;case "close":g=a.data;l=3;g=new CloseEvent("close",{code:g.code,reason:g.reason,wasClean:g.wasClean});(f=c.onclose)==null||f.call(c,g);c.dispatchEvent(g);break;case "error":l=3;f=new Event("error");let x;(x=c.onerror)==
-null||x.call(c,f);c.dispatchEvent(f)}}}function p(a){return z(function*(){var f=new MessageChannel;t=f.port1;var g=new MessageChannel;r=g.port1;n();m();window.parent.postMessage({type:"websocket_open",portOrdering:["control","data"],url:b,protocols:a||[],connectionId:I},e,[f.port2,g.port2])}())}var c=Reflect.construct(EventTarget,[],new.target);c.CONNECTING=0;c.OPEN=1;c.CLOSING=2;c.CLOSED=3;c.url=b;c.binaryType="arraybuffer";c.protocol="";c.i="";var l=0,t=null,r=null,q=[],F=new TextEncoder,G=new TextDecoder;
-c.onopen=null;c.onmessage=null;c.onclose=null;c.onerror=null;Object.defineProperty(c,"readyState",{get:()=>l,enumerable:!0,configurable:!0});Object.defineProperty(c,"bufferedAmount",{get:()=>{var a=0;q.forEach(f=>{a+=typeof f==="string"?f.length:f.byteLength});return a},enumerable:!0,configurable:!0});var I=function(){var a;return((a=globalThis.crypto)==null?0:a.randomUUID)?globalThis.crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,f=>{var g=Math.random()*16|0;return(f===
-"x"?g:g&3|8).toString(16)})}();c.send=a=>{if(l===1)a instanceof Blob?a.arrayBuffer().then(f=>{k(f)}):k(a);else if(l===0)if(typeof a==="string")q.push(a);else if(a instanceof ArrayBuffer||ArrayBuffer.isView(a))q.push(h(a));else throw Error("Sending Blob is not supported before the connection is open.");else console.debug("WebSocket send called in CLOSING or CLOSED state; ignored.")};c.close=(a=1E3,f="")=>{if(l!==2&&l!==3){l=2;a={type:"close",code:a,reason:f,wasClean:a===1E3};var g;(g=t)==null||g.postMessage(a)}};
-Promise.resolve().then(()=>p(d));return c}A(B,EventTarget);var C=document.currentScript,D=C==null?void 0:C.getAttribute("ws-interception-config");if(!D)throw Error("WebSocket Interceptor: Missing ws-interception-config attribute in the script tag.");var E=JSON.parse(D);if(!E.parentOrigin||typeof E.parentOrigin!=="string")throw Error("WebSocket Interceptor: Invalid parentOrigin in ws-interception-config");
-(function(b){var d=Object.getOwnPropertyDescriptor(window,"WebSocket");if(!d||d.writable||d.configurable)d=Object.assign(function(e,h){try{let k=(new URL(e)).hostname;if(b.proxiedDomains.some(m=>k===m||k.endsWith(`.${m}`)))return new B(e,h,b.parentOrigin)}catch(k){throw window.parent.postMessage({type:"websocket_blocked",url:e,reason:"blocked_invalid_url"},b.parentOrigin),new DOMException(`WebSocket connection to '${e}' is not allowed in Canvas.`,"SecurityError");}window.parent.postMessage({type:"websocket_blocked",
-url:e,reason:"blocked_domain_not_allowlisted"},b.parentOrigin);throw new DOMException(`WebSocket connection to '${e}' is not allowed in Canvas.`,"SecurityError");},{CONNECTING:0,OPEN:1,CLOSING:2,CLOSED:3}),Object.defineProperty(window,"WebSocket",{value:d,writable:!1,configurable:!1})})({proxiedDomains:E.proxiedDomains||[],parentOrigin:E.parentOrigin});}).call(this);
-</script><script data-bard-client-injected="true">((function(modelInformation) {
-  const originalFetch = window.fetch;
-  // TODO: b/421908508 - Move these out of the script and match all generative AI model calls.
-  let googleLlmBaseApiUrls = [
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':streamGenerateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.textModelName + ':generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predict',
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageModelName + ':predictLongRunning',
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageEditModelName + ':generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.imageTransformModelName + ':generateContent',
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predict',
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.videoModelName + ':predictLongRunning',
-    'https://generativelanguage.googleapis.com/v1beta/models/' + modelInformation.ttsModelName + ':generateContent',
-  ];
-  modelInformation.deprecatedTextModelNames.forEach((modelName) => {
-    googleLlmBaseApiUrls.push(
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':streamGenerateContent',
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent',
-    );
-  });
-  modelInformation.deprecatedImageModelNames.forEach((modelName) => {
-    googleLlmBaseApiUrls.push(
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':predict',
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':predictLongRunning',
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent',
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':streamGenerateContent',
-    );
-  });
-  modelInformation.deprecatedGenerateImageModelNames.forEach((modelName) => {
-    googleLlmBaseApiUrls.push(
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent',
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':streamGenerateContent',
-    );
-  });
-  modelInformation.deprecatedImageTransformModelNames.forEach((modelName) => {
-    googleLlmBaseApiUrls.push(
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent',
-      'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':streamGenerateContent',
-    );
-  });
-
-  const pendingFetchResolvers = {};
-  let nextPromiseId = 0;
-
-  function handleStringInput(input, optionsArgument) {
-    const actualUrl = input;
-    const fetchCallArgs = [actualUrl, optionsArgument];
-    const effectiveOptions = optionsArgument || {};
-    const bodyForApiKeyCheck = effectiveOptions.body;
-    const bodyForPostMessage = effectiveOptions.body;
-    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
-  }
-
-  function handleRequestInput(input, optionsArgument) {
-    const actualUrl = input.url;
-    const fetchCallArgs = [input, optionsArgument];
-    const effectiveOptions = { method: input.method, headers: new Headers(input.headers) };
-    let bodyForApiKeyCheck;
-    let bodyForPostMessage;
-
-    if (optionsArgument) {
-      if (optionsArgument.method) effectiveOptions.method = optionsArgument.method;
-      if (optionsArgument.headers) effectiveOptions.headers = new Headers(optionsArgument.headers);
-      if ('body' in optionsArgument) {
-        bodyForApiKeyCheck = optionsArgument.body;
-        bodyForPostMessage = optionsArgument.body;
-      } else {
-        bodyForApiKeyCheck = undefined;
-        bodyForPostMessage = input.body;
-      }
-    } else {
-      bodyForApiKeyCheck = undefined;
-      bodyForPostMessage = input.body;
-    }
-    return { actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage };
-  }
-
-  window.fetch = function(input, optionsArgument) {
-    let actualUrl;
-    let fetchCallArgs;
-    let effectiveOptions = {};
-    let bodyForApiKeyCheck;
-    let bodyForPostMessage;
-
-    if (typeof input === 'string') {
-      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleStringInput(input, optionsArgument));
-    } else if (input instanceof Request) {
-      ({actualUrl, fetchCallArgs, effectiveOptions, bodyForApiKeyCheck, bodyForPostMessage} = handleRequestInput(input, optionsArgument));
-    } else {
-      return originalFetch.apply(window, [input, optionsArgument]);
-    }
-
-    effectiveOptions.method = effectiveOptions.method || 'GET';
-    if (!effectiveOptions.headers) {
-      effectiveOptions.headers = new Headers();
-    }
-
-
-    if (typeof actualUrl === 'string' && googleLlmBaseApiUrls.some((url) => actualUrl.startsWith(url))) {
-      let apiKeyIsNull = true;
-
-      const regex = new RegExp("models/([^:]+)");
-      const modelNameMatch = actualUrl.match(regex);
-      const modelName = modelNameMatch ? modelNameMatch[1] : 'unspecified';
-
-
-      try {
-        const urlObject = new URL(actualUrl);  // Use URL object for robust parsing
-        const apiKeyParam = urlObject.searchParams.get('key');
-        if (apiKeyParam) {
-          apiKeyIsNull = false;
-        }
-      } catch (e) {
-        // Continue checks even if URL parsing fails
-      }
-
-      if (apiKeyIsNull && effectiveOptions.headers) {
-        const h = new Headers(effectiveOptions.headers);
-        const apiKeyHeaderValue = h.get('X-API-Key') || h.get('x-api-key');
-        if (apiKeyHeaderValue) {
-          apiKeyIsNull = false;
-          return originalFetch.apply(window, fetchCallArgs);
-        }
-      }
-
-      if (apiKeyIsNull && effectiveOptions.method && ['POST', 'PUT', 'PATCH'].includes(effectiveOptions.method.toUpperCase()) && typeof bodyForApiKeyCheck === 'string') {
-        try {
-          const bodyData = JSON.parse(bodyForApiKeyCheck);
-          if (bodyData && bodyData.apiKey) {
-            apiKeyIsNull = false;
-            return originalFetch.apply(window, fetchCallArgs);
-          }
-        } catch (e) {
-          // Ignore JSON parsing errors
-        }
-      }
-
-      if(apiKeyIsNull) {
-        const promiseId = nextPromiseId++;
-        const promise = new Promise((resolve) => {
-          pendingFetchResolvers[promiseId] = (resolvedResponse) => {
-            delete pendingFetchResolvers[promiseId];
-            resolve(resolvedResponse);
-          };
-        });
-
-        let serializedBodyForPostMessage;
-        if (typeof bodyForPostMessage === 'string' || bodyForPostMessage == null) {
-            serializedBodyForPostMessage = bodyForPostMessage;
-        } else if (bodyForPostMessage instanceof ReadableStream) {
-            serializedBodyForPostMessage = null;
-        } else {
-            try {
-                serializedBodyForPostMessage = JSON.stringify(bodyForPostMessage);
-            } catch (e) {
-                serializedBodyForPostMessage = null;
-            }
-        }
-
-        const messageOptions = {
-            method: effectiveOptions.method,
-            headers: Object.fromEntries(new Headers(effectiveOptions.headers).entries()),
-            body: serializedBodyForPostMessage
-        };
-
-        window.parent.postMessage({
-          type: 'requestFetch',
-          url: actualUrl,
-          modelName: modelName,
-          options: messageOptions,
-          promiseId: promiseId,
-        }, '*');
-
-        return promise;
-      }
-      return originalFetch.apply(window, fetchCallArgs);
-    }
-    return originalFetch.apply(window, fetchCallArgs);
-  };
-
-  window.addEventListener('message', function(event) {
-    if (event.data && event.data.type === 'resolveFetch') {
-      const { promiseId, response } = event.data;
-      if (pendingFetchResolvers[promiseId]) {
-        try {
-          const reconstructedResponse = new Response(response.body, {
-            status: response.status,
-            statusText: response.statusText,
-            headers: new Headers(response.headers),
-          });
-          pendingFetchResolvers[promiseId](reconstructedResponse);
-        } catch (error) {
-          pendingFetchResolvers[promiseId](new Response(null, { status: 500, statusText: "Interceptor Response Reconstruction Error" }));
-        }
-      }
-    }
-  });
-
-}))({"textModelName":"gemini-3-flash-preview","imageModelName":"imagen-4.0-generate-001","imageEditModelName":"gemini-3.1-flash-image","imageTransformModelName":"gemini-3-pro-image","videoModelName":"veo-2.0-generate-001","ttsModelName":"gemini-2.5-flash-preview-tts","deprecatedTextModelNames":["gemini-2.0-flash","gemini-2.5-flash","gemini-2.5-flash-preview-04-17","gemini-2.5-flash-preview-05-20","gemini-2.5-flash-preview-09-2025"],"deprecatedImageModelNames":["imagen-3.0-generate-001","imagen-3.0-generate-002"],"deprecatedGenerateImageModelNames":["gemini-2.5-flash-image-preview","gemini-2.5-flash-image","gemini-3.1-flash-image-preview"],"deprecatedImageTransformModelNames":["gemini-3-pro-image-preview-11-2025"]})</script><script data-bard-client-injected="true">(function(){'use strict';function a(){window.parent.postMessage({type:"interaction"},"*")}window.addEventListener("click",a,{capture:!0,passive:!0});window.addEventListener("touchstart",a,{capture:!0,passive:!0});window.addEventListener("keydown",a,{capture:!0,passive:!0});}).call(this);
-</script><script data-bard-client-injected="true">(function() {
-  const originalConsoleLog = console.log;
-  const originalConsoleError = console.error;
-
-    /**
-   * Normalizes an error event or a promise rejection reason into a structured error object.
-   * @param {*} errorEventOrReason The error object or reason.
-   * @return {object} Structured error data { message, name, stack }.
-   */
-  function getErrorObject(errorEventOrReason) {
-    if (errorEventOrReason instanceof Error) {
-      return {
-        message: errorEventOrReason.message,
-        name: errorEventOrReason.name,
-        stack: errorEventOrReason.stack,
-      };
-    }
-    // Fallback for non-Error objects.
-    try {
-      return {
-        message: JSON.stringify(errorEventOrReason),
-        name: 'UnknownErrorType',
-        stack: null,
-      };
-    } catch (e) {
-      return {
-        message: String(errorEventOrReason),
-        name: 'UnknownErrorTypeNonStringifiable',
-        stack: null,
-      };
-    }
-  }
-
-  /**
-   * Converts an array of arguments (from log/error) into a single string.
-   * Handles Error objects specially to include their message and stack.
-   * @param {Array<*>} args - Arguments passed to console methods.
-   * @return {string} A string representation of the arguments.
-   */
-  function stringifyArgs(args) {
-    return args
-      .map((arg) => {
-        if (arg instanceof Error) {
-          const {message, stack} = arg;
-          return `Error: ${message}${stack ? ('\nStack: ' + stack) : ''}`;
-        }
-        if (typeof arg === 'object' && arg !== null) {
-          try {
-            return JSON.stringify(arg);
-          } catch (error) {
-            return '[Circular Object]';
-          }
-        } else {
-          return String(arg);
-        }
-      })
-      .join(' ');
-  }
-
-  console.log = function(...args) {
-    const logString = stringifyArgs(args);
-    window.parent.postMessage({ type: 'log', message: logString }, '*');
-    originalConsoleLog.apply(console, args);
-  };
-
-  console.error = function(...args) {
-    let errorData;
-    if (args.length > 0 && args[0] instanceof Error) {
-      const err = args[0];
-      // If the first arg is an Error, capture its details.
-      errorData = {
-        type: 'error',
-        source: 'CONSOLE_ERROR',
-        ...getErrorObject(err),
-        rawArgsString: stringifyArgs(args.slice(1)),
-        timestamp: new Date().toISOString(),
-      };
-    } else {
-      // If not an Error object, treat all args as a general error message.
-      errorData = {
-        type: 'error',
-        source: 'CONSOLE_ERROR',
-        message: stringifyArgs(args),
-        name: 'ConsoleLoggedError',
-        stack: null,
-        timestamp: new Date().toISOString(),
-      };
-    }
-    window.parent.postMessage(errorData, '*');
-    originalConsoleError.apply(console, args);
-  };
-
-  // Listen for global unhandled synchronous errors.
-  window.addEventListener('error', function(event) {
-    const errorDetails = event.error ? getErrorObject(event.error) : {
-      message: event.message,
-      name: 'GlobalError',
-      stack: null,
-      filename: event.filename,
-      lineno: event.lineno,
-      colno: event.colno,
-    };
-
-    window.parent.postMessage({
-      type: 'error',
-      source: 'global',
-      ...errorDetails,
-      message: errorDetails.message || event.message,
-      timestamp: new Date().toISOString(),
-    }, '*');
-  });
-
-  // Listen for unhandled promise rejections (asynchronous errors).
-  window.addEventListener('unhandledrejection', function(event) {
-    const errorDetails = getErrorObject(event.reason);
-
-    window.parent.postMessage({
-      type: 'error',
-      source: 'unhandledrejection',
-      ...errorDetails,
-      message: errorDetails.message || 'Unhandled Promise Rejection',
-      timestamp: new Date().toISOString(),
-    }, '*');
-  });
-
-})();</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rose Boutique | Luxury Ethnic Wear &amp; Tailoring in Kathmandu</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&amp;family=Montserrat:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
+    <title>Rose Boutique & Collection</title>
+    
+    <!-- Favicon (Browser Tab Icon) -->
+    <link rel="icon" type="image/jpeg" href="WhatsApp Image 2026-09-25 at 2.43.47 PM_2.jpeg">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- JSZip and FileSaver for instant ZIP downloads -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" crossorigin="anonymous"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        royal: {
-                            50: '#f0f5fd',
-                            100: '#e1ebfb',
-                            500: '#1b365d',
-                            600: '#152b4a',
-                            700: '#102037',
-                            800: '#0b1625',
-                            900: '#060b13'
-                        },
-                        gold: {
-                            300: '#fde047',
-                            400: '#facc15',
-                            500: '#eab308',
-                            600: '#ca8a04',
-                            700: '#a16207'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Montserrat', 'sans-serif'],
-                        serif: ['Cormorant Garamond', 'serif']
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
     <style>
-        .glass-nav {
-            background: rgba(11, 22, 37, 0.92);
-            backdrop-filter: blur(12px);
+        :root {
+            /* Royal Blue matching your logo */
+            --primary-color: #2b499b; 
+            --primary-light: #eef2fb;
+            --primary-dark: #1a2d61;
+            --text-dark: #333333;
+            --text-light: #666666;
         }
-        .hero-bg {
-            background: linear-gradient(rgba(11, 22, 37, 0.65), rgba(11, 22, 37, 0.75)), url('WhatsApp Image 2026-09-25 at 3.02.10 PM_2.jpeg') center/cover no-repeat;
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow-x: hidden;
+            padding-top: 76px;
+            color: var(--text-dark);
         }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
+
+        h1, h2, h3, h4, h5, .brand-text, .font-playfair {
+            font-family: 'Playfair Display', serif;
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #0b1625;
+
+        .text-primary-custom { color: var(--primary-color) !important; }
+        .bg-primary-custom { background-color: var(--primary-color) !important; }
+        .bg-light-custom { background-color: var(--primary-light) !important; }
+
+        /* Navbar Styling */
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #ca8a04;
-            border-radius: 4px;
+
+        .navbar-brand .logo-img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        .brand-text {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-left: 10px;
         }
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-out forwards;
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--text-dark) !important;
+            margin: 0 10px;
+            position: relative;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary-color) !important;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            background: var(--primary-color);
+            bottom: 0;
+            left: 0;
+            transition: width 0.3s;
+        }
+
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+
+        /* Section Titles */
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+            margin-bottom: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .section-title::after {
+            content: "";
+            position: absolute;
+            width: 60%;
+            height: 3px;
+            background: var(--primary-color);
+            bottom: -12px;
+            left: 20%;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            height: calc(100vh - 76px);
+            background: linear-gradient(rgba(43, 73, 155, 0.7), rgba(26, 45, 97, 0.8)), 
+                        url('https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+            background-attachment: fixed;
+            display: flex;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 2px solid var(--primary-color);
+            transition: all 0.3s;
+        }
+
+        .btn-custom:hover {
+            background-color: transparent;
+            color: white;
+            border-color: white;
+        }
+
+        /* Gallery/Collection Section */
+        .gallery-card {
+            position: relative;
+            cursor: pointer;
+            height: 400px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .gallery-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s ease;
+        }
+
+        .gallery-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .gallery-card .overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(43, 73, 155, 0.85); /* Royal Blue Overlay */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .gallery-card:hover .overlay {
+            opacity: 1;
+        }
+
+        /* Contact Section */
+        .contact-info-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            height: 100%;
+        }
+
+        .icon-box {
+            width: 60px;
+            height: 60px;
+            background: var(--primary-light);
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .contact-item {
+            margin-bottom: 30px;
+        }
+
+        .contact-item:hover .icon-box {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .contact-item h5 {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        /* Map */
+        .map-container iframe {
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        /* Social Icons in Contact & Footer */
+        .social-links a, .contact-social a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            margin-right: 10px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .contact-social a {
+            background-color: var(--primary-light);
+            color: var(--primary-color);
+        }
+
+        .contact-social a:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .footer-social a {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .footer-social a:hover {
+            background-color: white;
+            color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        /* Floating WhatsApp Button */
+        .whatsapp-float {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            bottom: 30px;
+            right: 30px;
+            background-color: #25d366;
+            color: #FFF;
+            border-radius: 50px;
+            text-align: center;
+            font-size: 35px;
+            box-shadow: 2px 2px 15px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: transform 0.3s ease;
+        }
+
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+            color: white;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--primary-dark);
+        }
+
+        /* Animations */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
-<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:Montserrat, sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0px}.-bottom-20{bottom:-5rem}.-right-20{right:-5rem}.-top-12{top:-3rem}.bottom-6{bottom:1.5rem}.left-4{left:1rem}.right-0{right:0px}.right-6{right:1.5rem}.top-0{top:0px}.top-4{top:1rem}.top-6{top:1.5rem}.z-10{z-index:10}.z-50{z-index:50}.mx-auto{margin-left:auto;margin-right:auto}.my-1{margin-top:0.25rem;margin-bottom:0.25rem}.mb-1{margin-bottom:0.25rem}.mb-16{margin-bottom:4rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}.mb-8{margin-bottom:2rem}.mr-1{margin-right:0.25rem}.mt-0\.5{margin-top:0.125rem}.mt-1{margin-top:0.25rem}.mt-12{margin-top:3rem}.mt-2{margin-top:0.5rem}.mt-4{margin-top:1rem}.mt-6{margin-top:1.5rem}.mt-8{margin-top:2rem}.block{display:block}.inline-block{display:inline-block}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.hidden{display:none}.h-10{height:2.5rem}.h-12{height:3rem}.h-20{height:5rem}.h-6{height:1.5rem}.h-80{height:20rem}.h-96{height:24rem}.h-full{height:100%}.max-h-\[75vh\]{max-height:75vh}.max-h-\[90vh\]{max-height:90vh}.min-h-\[90vh\]{min-height:90vh}.w-10{width:2.5rem}.w-12{width:3rem}.w-96{width:24rem}.w-auto{width:auto}.w-full{width:100%}.max-w-2xl{max-width:42rem}.max-w-4xl{max-width:56rem}.max-w-7xl{max-width:80rem}.max-w-lg{max-width:32rem}.max-w-xl{max-width:36rem}.shrink-0{flex-shrink:0}.transform{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.cursor-pointer{cursor:pointer}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:0.25rem}.gap-1\.5{gap:0.375rem}.gap-12{gap:3rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}.gap-7{gap:1.75rem}.gap-8{gap:2rem}.space-y-4 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem * var(--tw-space-y-reverse))}.space-y-6 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.scroll-smooth{scroll-behavior:smooth}.rounded-2xl{border-radius:1rem}.rounded-3xl{border-radius:1.5rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:0.5rem}.rounded-xl{border-radius:0.75rem}.border{border-width:1px}.border-2{border-width:2px}.border-y{border-top-width:1px;border-bottom-width:1px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-emerald-500{--tw-border-opacity:1;border-color:rgb(16 185 129 / var(--tw-border-opacity, 1))}.border-gold-400{--tw-border-opacity:1;border-color:rgb(250 204 21 / var(--tw-border-opacity, 1))}.border-gold-400\/40{border-color:rgb(250 204 21 / 0.4)}.border-gold-400\/50{border-color:rgb(250 204 21 / 0.5)}.border-royal-100{--tw-border-opacity:1;border-color:rgb(225 235 251 / var(--tw-border-opacity, 1))}.border-royal-700{--tw-border-opacity:1;border-color:rgb(16 32 55 / var(--tw-border-opacity, 1))}.border-royal-700\/60{border-color:rgb(16 32 55 / 0.6)}.border-royal-800{--tw-border-opacity:1;border-color:rgb(11 22 37 / var(--tw-border-opacity, 1))}.border-slate-200{--tw-border-opacity:1;border-color:rgb(226 232 240 / var(--tw-border-opacity, 1))}.border-slate-300{--tw-border-opacity:1;border-color:rgb(203 213 225 / var(--tw-border-opacity, 1))}.bg-emerald-600{--tw-bg-opacity:1;background-color:rgb(5 150 105 / var(--tw-bg-opacity, 1))}.bg-gold-500{--tw-bg-opacity:1;background-color:rgb(234 179 8 / var(--tw-bg-opacity, 1))}.bg-gold-500\/10{background-color:rgb(234 179 8 / 0.1)}.bg-gold-500\/20{background-color:rgb(234 179 8 / 0.2)}.bg-royal-50{--tw-bg-opacity:1;background-color:rgb(240 245 253 / var(--tw-bg-opacity, 1))}.bg-royal-800{--tw-bg-opacity:1;background-color:rgb(11 22 37 / var(--tw-bg-opacity, 1))}.bg-royal-800\/90{background-color:rgb(11 22 37 / 0.9)}.bg-royal-900{--tw-bg-opacity:1;background-color:rgb(6 11 19 / var(--tw-bg-opacity, 1))}.bg-slate-100{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.bg-slate-200{--tw-bg-opacity:1;background-color:rgb(226 232 240 / var(--tw-bg-opacity, 1))}.bg-slate-50{--tw-bg-opacity:1;background-color:rgb(248 250 252 / var(--tw-bg-opacity, 1))}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-gradient-to-t{background-image:linear-gradient(to top, var(--tw-gradient-stops))}.via-transparent{--tw-gradient-to:rgb(0 0 0 / 0)  var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from), transparent var(--tw-gradient-via-position), var(--tw-gradient-to)}.object-contain{object-fit:contain}.object-cover{object-fit:cover}.p-0\.5{padding:0.125rem}.p-2{padding:0.5rem}.p-3{padding:0.75rem}.p-4{padding:1rem}.p-6{padding:1.5rem}.p-8{padding:2rem}.px-10{padding-left:2.5rem;padding-right:2.5rem}.px-3{padding-left:0.75rem;padding-right:0.75rem}.px-4{padding-left:1rem;padding-right:1rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.px-6{padding-left:1.5rem;padding-right:1.5rem}.px-8{padding-left:2rem;padding-right:2rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-12{padding-top:3rem;padding-bottom:3rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-20{padding-top:5rem;padding-bottom:5rem}.py-24{padding-top:6rem;padding-bottom:6rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-3\.5{padding-top:0.875rem;padding-bottom:0.875rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-5{padding-top:1.25rem;padding-bottom:1.25rem}.py-6{padding-top:1.5rem;padding-bottom:1.5rem}.pt-0{padding-top:0px}.pt-12{padding-top:3rem}.pt-4{padding-top:1rem}.text-left{text-align:left}.text-center{text-align:center}.font-sans{font-family:Montserrat, sans-serif}.font-serif{font-family:Cormorant Garamond, serif}.text-2xl{font-size:1.5rem;line-height:2rem}.text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}.text-5xl{font-size:3rem;line-height:1}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.font-bold{font-weight:700}.font-light{font-weight:300}.font-medium{font-weight:500}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.italic{font-style:italic}.leading-relaxed{line-height:1.625}.leading-tight{line-height:1.25}.tracking-tight{letter-spacing:-0.025em}.tracking-wide{letter-spacing:0.025em}.tracking-wider{letter-spacing:0.05em}.tracking-widest{letter-spacing:0.1em}.text-emerald-100{--tw-text-opacity:1;color:rgb(209 250 229 / var(--tw-text-opacity, 1))}.text-emerald-400{--tw-text-opacity:1;color:rgb(52 211 153 / var(--tw-text-opacity, 1))}.text-emerald-600{--tw-text-opacity:1;color:rgb(5 150 105 / var(--tw-text-opacity, 1))}.text-gold-300{--tw-text-opacity:1;color:rgb(253 224 71 / var(--tw-text-opacity, 1))}.text-gold-400{--tw-text-opacity:1;color:rgb(250 204 21 / var(--tw-text-opacity, 1))}.text-gold-500{--tw-text-opacity:1;color:rgb(234 179 8 / var(--tw-text-opacity, 1))}.text-gold-600{--tw-text-opacity:1;color:rgb(202 138 4 / var(--tw-text-opacity, 1))}.text-royal-600{--tw-text-opacity:1;color:rgb(21 43 74 / var(--tw-text-opacity, 1))}.text-royal-700{--tw-text-opacity:1;color:rgb(16 32 55 / var(--tw-text-opacity, 1))}.text-royal-900{--tw-text-opacity:1;color:rgb(6 11 19 / var(--tw-text-opacity, 1))}.text-slate-200{--tw-text-opacity:1;color:rgb(226 232 240 / var(--tw-text-opacity, 1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-slate-700{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.antialiased{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}.placeholder-slate-500::placeholder{--tw-placeholder-opacity:1;color:rgb(100 116 139 / var(--tw-placeholder-opacity, 1))}.opacity-0{opacity:0}.shadow{--tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgb(0 0 0 / 0.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.blur-3xl{--tw-blur:blur(64px);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-md{--tw-backdrop-blur:blur(12px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.backdrop-blur-sm{--tw-backdrop-blur:blur(4px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-300{transition-duration:300ms}.duration-500{transition-duration:500ms}.selection\:bg-gold-500 *::selection{--tw-bg-opacity:1;background-color:rgb(234 179 8 / var(--tw-bg-opacity, 1))}.selection\:bg-gold-500::selection{--tw-bg-opacity:1;background-color:rgb(234 179 8 / var(--tw-bg-opacity, 1))}.hover\:-translate-y-0\.5:hover{--tw-translate-y:-0.125rem;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.hover\:bg-emerald-500:hover{--tw-bg-opacity:1;background-color:rgb(16 185 129 / var(--tw-bg-opacity, 1))}.hover\:bg-gold-400:hover{--tw-bg-opacity:1;background-color:rgb(250 204 21 / var(--tw-bg-opacity, 1))}.hover\:bg-royal-100:hover{--tw-bg-opacity:1;background-color:rgb(225 235 251 / var(--tw-bg-opacity, 1))}.hover\:bg-royal-700:hover{--tw-bg-opacity:1;background-color:rgb(16 32 55 / var(--tw-bg-opacity, 1))}.hover\:bg-royal-800:hover{--tw-bg-opacity:1;background-color:rgb(11 22 37 / var(--tw-bg-opacity, 1))}.hover\:text-emerald-300:hover{--tw-text-opacity:1;color:rgb(110 231 183 / var(--tw-text-opacity, 1))}.hover\:text-gold-300:hover{--tw-text-opacity:1;color:rgb(253 224 71 / var(--tw-text-opacity, 1))}.hover\:text-gold-400:hover{--tw-text-opacity:1;color:rgb(250 204 21 / var(--tw-text-opacity, 1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.hover\:shadow-xl:hover{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.focus\:border-gold-400:focus{--tw-border-opacity:1;border-color:rgb(250 204 21 / var(--tw-border-opacity, 1))}.focus\:border-royal-900:focus{--tw-border-opacity:1;border-color:rgb(6 11 19 / var(--tw-border-opacity, 1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.group:hover .group-hover\:scale-105{--tw-scale-x:1.05;--tw-scale-y:1.05;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.group:hover .group-hover\:scale-110{--tw-scale-x:1.1;--tw-scale-y:1.1;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.group:hover .group-hover\:opacity-100{opacity:1}@media (min-width: 640px){.sm\:inline{display:inline}.sm\:flex{display:flex}.sm\:w-auto{width:auto}.sm\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.sm\:flex-row{flex-direction:row}.sm\:p-10{padding:2.5rem}.sm\:px-6{padding-left:1.5rem;padding-right:1.5rem}.sm\:text-5xl{font-size:3rem;line-height:1}.sm\:text-6xl{font-size:3.75rem;line-height:1}.sm\:text-base{font-size:1rem;line-height:1.5rem}.sm\:text-lg{font-size:1.125rem;line-height:1.75rem}.sm\:text-sm{font-size:0.875rem;line-height:1.25rem}}@media (min-width: 768px){.md\:inline{display:inline}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}}@media (min-width: 1024px){.lg\:flex{display:flex}.lg\:hidden{display:none}.lg\:grid-cols-2{grid-template-columns:repeat(2, minmax(0, 1fr))}.lg\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.lg\:px-8{padding-left:2rem;padding-right:2rem}.lg\:text-7xl{font-size:4.5rem;line-height:1}}</style></head>
-<body class="bg-slate-50 text-slate-800 font-sans antialiased custom-scrollbar selection:bg-gold-500 selection:text-royal-950">
+</head>
+<body>
 
-    <div class="bg-royal-900 text-gold-400 text-xs sm:text-sm py-2 px-4 text-center font-medium tracking-widest border-b border-royal-700 flex flex-wrap items-center justify-center gap-3">
-        <span><i class="fa-solid fa-location-dot mr-1"></i> Chapali Road, Kathmandu</span>
-        <span class="hidden sm:inline">•</span>
-        <span><i class="fa-solid fa-phone mr-1"></i> 9841024182</span>
-        <span class="hidden md:inline">•</span>
-        <span class="hidden md:inline text-white">Open Sunday – Friday (10:00 AM – 7:00 PM)</span>
-    </div>
-
-    <header class="sticky top-0 z-50 glass-nav border-b border-royal-800 text-white transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <!-- Brand Logo -->
-            <a href="#home" class="flex items-center gap-3 group">
-                <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-gold-400 bg-white shadow-md flex items-center justify-center p-0.5 group-hover:scale-105 transition">
-                    <img src="https://placehold.co/100x100/1b365d/ffffff?text=RB" alt="Rose Boutique Logo" class="w-full h-full object-cover rounded-full" onerror="this.src='https://placehold.co/100x100/1b365d/ffffff?text=RB'">
-                </div>
-                <div>
-                    <h1 class="font-serif text-2xl font-bold tracking-wider text-white">ROSE BOUTIQUE</h1>
-                    <p class="text-[10px] text-gold-400 uppercase tracking-widest font-semibold">Ethnic Fashion &amp; Tailoring</p>
-                </div>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg fixed-top py-2">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="#home">
+                <img src="WhatsApp Image 2026-09-25 at 2.43.47 PM_2.jpeg" class="logo-img" alt="Rose Boutique Logo">
+                <span class="brand-text">Rose Boutique</span>
             </a>
-
-            <!-- Desktop Nav Links -->
-            <nav class="hidden lg:flex items-center gap-7 font-medium text-sm tracking-wide">
-                <a href="#home" class="hover:text-gold-400 transition">Home</a>
-                <a href="#collections" class="hover:text-gold-400 transition">Collections</a>
-                <a href="#gallery" class="hover:text-gold-400 transition">Boutique Tour</a>
-                <a href="#tailoring" class="hover:text-gold-400 transition">Custom Tailoring</a>
-                <a href="#download-section" class="text-gold-400 font-bold hover:text-gold-300 transition flex items-center gap-1"><i class="fa-solid fa-download"></i> Download ZIP</a>
-                <a href="#contact" class="hover:text-gold-400 transition">Contact</a>
-            </nav>
-
-            <!-- Action Buttons -->
-            <div class="hidden sm:flex items-center gap-3">
-                <button onclick="openBookingModal()" class="px-4 py-2 rounded-xl bg-gold-500 hover:bg-gold-400 text-royal-950 font-bold text-xs uppercase tracking-wider transition shadow-lg flex items-center gap-2">
-                    <i class="fa-regular fa-calendar-days"></i> Book Fitting
-                </button>
-                <a href="https://wa.me/9779841024182?text=Hello%20Rose%20Boutique,%20I%20would%20like%20to%20inquire%20about%20your%20ethnic%20wear." target="_blank" class="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow-lg transition" title="Chat on WhatsApp">
-                    <i class="fa-brands fa-whatsapp text-lg"></i>
-                </a>
-            </div>
-
-            <!-- Mobile Menu Toggle -->
-            <button onclick="toggleMobileMenu()" class="lg:hidden text-white p-2 text-xl focus:outline-none">
-                <i class="fa-solid fa-bars" id="menu-icon"></i>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
             </button>
-        </div>
-
-        <!-- Mobile Dropdown Menu -->
-        <div id="mobile-menu" class="hidden lg:hidden bg-royal-950 border-b border-royal-800 px-6 py-6 space-y-4">
-            <a href="#home" onclick="toggleMobileMenu()" class="block text-lg font-medium hover:text-gold-400">Home</a>
-            <a href="#collections" onclick="toggleMobileMenu()" class="block text-lg font-medium hover:text-gold-400">Collections</a>
-            <a href="#gallery" onclick="toggleMobileMenu()" class="block text-lg font-medium hover:text-gold-400">Boutique Tour</a>
-            <a href="#tailoring" onclick="toggleMobileMenu()" class="block text-lg font-medium hover:text-gold-400">Custom Tailoring</a>
-            <a href="#download-section" onclick="toggleMobileMenu()" class="block text-lg font-medium text-gold-400">Download All Code (ZIP)</a>
-            <a href="#contact" onclick="toggleMobileMenu()" class="block text-lg font-medium hover:text-gold-400">Location &amp; Contact</a>
-            <div class="pt-4 flex flex-col gap-3">
-                <button onclick="toggleMobileMenu(); openBookingModal();" class="w-full py-3 rounded-xl bg-gold-500 text-royal-950 font-bold uppercase tracking-wider text-sm">
-                    Book Fitting Appointment
-                </button>
-                <a href="https://wa.me/9779841024182?text=Hello%20Rose%20Boutique," target="_blank" class="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold text-center text-sm flex items-center justify-center gap-2">
-                    <i class="fa-brands fa-whatsapp text-lg"></i> Chat on WhatsApp (9841024182)
-                </a>
-            </div>
-        </div>
-    </header>
-
-    <section id="home" class="hero-bg min-h-[90vh] flex items-center justify-center text-center px-4 py-20 relative text-white">
-        <div class="max-w-4xl mx-auto space-y-6">
-            <span class="inline-block py-1.5 px-5 rounded-full bg-gold-500/20 border border-gold-400/40 text-gold-400 text-xs sm:text-sm font-semibold uppercase tracking-widest">
-                Chapali Road's Premier Fashion Destination
-            </span>
-            <h2 class="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-tight text-white">
-                Timeless Grace, <br><span class="text-gold-400 italic">Exquisitely Draped</span>
-            </h2>
-            <p class="text-slate-200 text-base sm:text-lg max-w-2xl mx-auto font-light leading-relaxed">
-                Discover Kathmandu’s finest collection of handcrafted designer sarees, readymade khurtas, festive ethnic wear, and bespoke custom stitching at Rose Boutique.
-            </p>
-            <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a href="#collections" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-royal-950 font-bold uppercase tracking-wider text-sm shadow-2xl transition transform hover:-translate-y-0.5">
-                    Explore Collections
-                </a>
-                <a href="#download-section" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-royal-800/90 hover:bg-royal-700 border border-gold-400/50 text-gold-300 font-bold uppercase tracking-wider text-sm shadow-xl transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-file-zipper text-gold-400 text-lg"></i> Download Project ZIP
-                </a>
-            </div>
-
-            <!-- Stats Bar -->
-            <div class="grid grid-cols-3 gap-4 pt-12 max-w-xl mx-auto border-t border-royal-700/60 mt-12">
-                <div>
-                    <h3 class="font-serif text-3xl font-bold text-gold-400">100%</h3>
-                    <p class="text-xs text-slate-300 uppercase tracking-wider mt-1">Authentic Fabrics</p>
-                </div>
-                <div>
-                    <h3 class="font-serif text-3xl font-bold text-gold-400">Custom</h3>
-                    <p class="text-xs text-slate-300 uppercase tracking-wider mt-1">Bespoke Tailoring</p>
-                </div>
-                <div>
-                    <h3 class="font-serif text-3xl font-bold text-gold-400">Kathmandu</h3>
-                    <p class="text-xs text-slate-300 uppercase tracking-wider mt-1">Chapali Road</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="collections" class="py-24 bg-white px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center max-w-2xl mx-auto mb-16">
-                <span class="text-royal-600 text-xs font-bold uppercase tracking-widest">Handpicked Elegance</span>
-                <h3 class="font-serif text-4xl sm:text-5xl font-bold text-royal-900 mt-2 mb-4">Our Exclusive Collections</h3>
-                <p class="text-slate-600 text-sm sm:text-base">Filter through our exquisite range of sarees, khurtas, and festive wear crafted for every occasion.</p>
-                
-                <!-- Filter Tabs -->
-                <div class="flex flex-wrap items-center justify-center gap-2 mt-8">
-                    <button onclick="filterCollection('all')" class="filter-btn px-5 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider bg-royal-900 text-white shadow-md transition" data-filter="all">All Items</button>
-                    <button onclick="filterCollection('sarees')" class="filter-btn px-5 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider bg-slate-100 hover:bg-royal-100 text-royal-900 transition" data-filter="sarees">Designer Sarees</button>
-                    <button onclick="filterCollection('khurtas')" class="filter-btn px-5 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider bg-slate-100 hover:bg-royal-100 text-royal-900 transition" data-filter="khurtas">Khurtas &amp; Sets</button>
-                    <button onclick="filterCollection('festive')" class="filter-btn px-5 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider bg-slate-100 hover:bg-royal-100 text-royal-900 transition" data-filter="festive">Festive Wear</button>
-                </div>
-            </div>
-
-            <!-- Product Cards Grid -->
-            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Item 1 -->
-                <div class="product-card group bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition duration-300 flex flex-col justify-between" data-category="sarees">
-                    <div>
-                        <div class="relative h-96 overflow-hidden bg-slate-200">
-                            <img src="https://placehold.co/600x800/1b365d/ffffff?text=Banarasi+Saree" alt="Royal Banarasi Saree" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x800/1b365d/ffffff?text=Banarasi+Saree'">
-                            <span class="absolute top-4 left-4 bg-royal-900 text-gold-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow">Designer Saree</span>
-                        </div>
-                        <div class="p-6">
-                            <h4 class="font-serif text-2xl font-bold text-royal-900 mb-2">Royal Banarasi Silk Saree</h4>
-                            <p class="text-slate-600 text-sm mb-4">Intricate zari weaving on pure silk drape, designed for weddings and grand receptions.</p>
-                            <div class="flex items-center justify-between text-xs font-semibold text-royal-700 bg-royal-50 p-3 rounded-xl border border-royal-100">
-                                <span><i class="fa-solid fa-sparkles text-gold-500 mr-1"></i> Premium Weave</span>
-                                <span class="text-emerald-600 font-bold">In Store Now</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="p-6 pt-0">
-                        <a href="https://wa.me/9779841024182?text=Hello%20Rose%20Boutique,%20I%20am%20interested%20in%20the%20Royal%20Banarasi%20Silk%20Saree." target="_blank" class="w-full py-3 rounded-xl bg-royal-900 hover:bg-royal-800 text-white font-bold text-xs uppercase tracking-wider text-center flex items-center justify-center gap-2 shadow transition">
-                            <i class="fa-brands fa-whatsapp text-emerald-400 text-base"></i> Inquire via WhatsApp
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Item 2 -->
-                <div class="product-card group bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition duration-300 flex flex-col justify-between" data-category="khurtas">
-                    <div>
-                        <div class="relative h-96 overflow-hidden bg-slate-200">
-                            <img src="https://placehold.co/600x800/1b365d/ffffff?text=Khurta+Set" alt="Embroidered Khurta Set" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x800/1b365d/ffffff?text=Khurta+Set'">
-                            <span class="absolute top-4 left-4 bg-royal-900 text-gold-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow">Khurtas &amp; Sets</span>
-                        </div>
-                        <div class="p-6">
-                            <h4 class="font-serif text-2xl font-bold text-royal-900 mb-2">Designer Embroidered Khurta Set</h4>
-                            <p class="text-slate-600 text-sm mb-4">Readymade luxury cotton-silk khurta with delicate hand-embroidery and matching pants.</p>
-                            <div class="flex items-center justify-between text-xs font-semibold text-royal-700 bg-royal-50 p-3 rounded-xl border border-royal-100">
-                                <span><i class="fa-solid fa-shirt text-gold-500 mr-1"></i> Readymade Set</span>
-                                <span class="text-emerald-600 font-bold">Multiple Sizes</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="p-6 pt-0">
-                        <a href="https://wa.me/9779841024182?text=Hello%20Rose%20Boutique,%20I%20am%20interested%20in%20the%20Designer%20Embroidered%20Khurta%20Set." target="_blank" class="w-full py-3 rounded-xl bg-royal-900 hover:bg-royal-800 text-white font-bold text-xs uppercase tracking-wider text-center flex items-center justify-center gap-2 shadow transition">
-                            <i class="fa-brands fa-whatsapp text-emerald-400 text-base"></i> Inquire via WhatsApp
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Item 3 -->
-                <div class="product-card group bg-slate-50 rounded-3xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition duration-300 flex flex-col justify-between" data-category="festive">
-                    <div>
-                        <div class="relative h-96 overflow-hidden bg-slate-200">
-                            <img src="https://placehold.co/600x800/1b365d/ffffff?text=Festive+Organza" alt="Festive Organza Saree" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x800/1b365d/ffffff?text=Festive+Organza'">
-                            <span class="absolute top-4 left-4 bg-royal-900 text-gold-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg shadow">Festive Wear</span>
-                        </div>
-                        <div class="p-6">
-                            <h4 class="font-serif text-2xl font-bold text-royal-900 mb-2">Floral Organza Festive Saree</h4>
-                            <p class="text-slate-600 text-sm mb-4">Lightweight organza saree featuring hand-painted floral motifs and scalloped border.</p>
-                            <div class="flex items-center justify-between text-xs font-semibold text-royal-700 bg-royal-50 p-3 rounded-xl border border-royal-100">
-                                <span><i class="fa-solid fa-feather text-gold-500 mr-1"></i> Light &amp; Flowy</span>
-                                <span class="text-emerald-600 font-bold">New Arrival</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="p-6 pt-0">
-                        <a href="https://wa.me/9779841024182?text=Hello%20Rose%20Boutique,%20I%20am%20interested%20in%20the%20Floral%20Organza%20Festive%20Saree." target="_blank" class="w-full py-3 rounded-xl bg-royal-900 hover:bg-royal-800 text-white font-bold text-xs uppercase tracking-wider text-center flex items-center justify-center gap-2 shadow transition">
-                            <i class="fa-brands fa-whatsapp text-emerald-400 text-base"></i> Inquire via WhatsApp
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="gallery" class="py-24 bg-slate-900 text-white px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center max-w-2xl mx-auto mb-16">
-                <span class="text-gold-400 text-xs font-bold uppercase tracking-widest">Virtual Boutique Tour</span>
-                <h3 class="font-serif text-4xl sm:text-5xl font-bold text-white mt-2 mb-4">Inside Rose Boutique</h3>
-                <p class="text-slate-300 text-sm sm:text-base">Take a glimpse inside our boutique on Chapali Road, Kathmandu. Click any photo to expand in high resolution.</p>
-            </div>
-
-            <!-- Gallery Grid -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div onclick="openLightbox('WhatsApp Image 2026-09-25 at 3.02.10 PM_2.jpeg', 'Rose Boutique Storefront')" class="group relative h-80 rounded-3xl overflow-hidden cursor-pointer shadow-xl border border-royal-700">
-                    <img src="https://placehold.co/600x600/1b365d/ffffff?text=Storefront" alt="Storefront" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" onerror="this.src='https://placehold.co/600x600/1b365d/ffffff?text=Storefront'">
-                    <div class="absolute inset-0 bg-gradient-to-t from-royal-950/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-6">
-                        <div>
-                            <span class="text-xs text-gold-400 font-bold uppercase tracking-widest">Chapali Road</span>
-                            <h4 class="font-serif text-xl font-bold text-white">Storefront &amp; Exterior</h4>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="openLightbox('WhatsApp Image 2026-09-25 at 3.02.07 PM_2.jpeg', 'Interior Display')" class="group relative h-80 rounded-3xl overflow-hidden cursor-pointer shadow-xl border border-royal-700">
-                    <img src="https://placehold.co/600x600/1b365d/ffffff?text=Interior" alt="Interior Display" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" onerror="this.src='https://placehold.co/600x600/1b365d/ffffff?text=Interior'">
-                    <div class="absolute inset-0 bg-gradient-to-t from-royal-950/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-6">
-                        <div>
-                            <span class="text-xs text-gold-400 font-bold uppercase tracking-widest">Showroom</span>
-                            <h4 class="font-serif text-xl font-bold text-white">Exquisite Displays</h4>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="openLightbox('WhatsApp Image 2026-09-25 at 3.02.09 PM_2.jpeg', 'Tailoring &amp; Fittings')" class="group relative h-80 rounded-3xl overflow-hidden cursor-pointer shadow-xl border border-royal-700">
-                    <img src="https://placehold.co/600x600/1b365d/ffffff?text=Tailoring" alt="Tailoring" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" onerror="this.src='https://placehold.co/600x600/1b365d/ffffff?text=Tailoring'">
-                    <div class="absolute inset-0 bg-gradient-to-t from-royal-950/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-6">
-                        <div>
-                            <span class="text-xs text-gold-400 font-bold uppercase tracking-widest">Craftsmanship</span>
-                            <h4 class="font-serif text-xl font-bold text-white">Custom Tailoring Studio</h4>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="openLightbox('WhatsApp Image 2026-09-25 at 3.02.11 PM_2.jpeg', 'Collection Racks')" class="group relative h-80 rounded-3xl overflow-hidden cursor-pointer shadow-xl border border-royal-700">
-                    <img src="https://placehold.co/600x600/1b365d/ffffff?text=Collections+Racks" alt="Collection Racks" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" onerror="this.src='https://placehold.co/600x600/1b365d/ffffff?text=Collections+Racks'">
-                    <div class="absolute inset-0 bg-gradient-to-t from-royal-950/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-6">
-                        <div>
-                            <span class="text-xs text-gold-400 font-bold uppercase tracking-widest">Saree Section</span>
-                            <h4 class="font-serif text-xl font-bold text-white">Handpicked Silk Racks</h4>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="openLightbox('WhatsApp Image 2026-09-25 at 3.02.11 PM (1)_2.jpeg', 'Boutique Interior')" class="group relative h-80 rounded-3xl overflow-hidden cursor-pointer shadow-xl border border-royal-700">
-                    <img src="https://placehold.co/600x600/1b365d/ffffff?text=Interior+View" alt="Boutique Interior" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" onerror="this.src='https://placehold.co/600x600/1b365d/ffffff?text=Interior+View'">
-                    <div class="absolute inset-0 bg-gradient-to-t from-royal-950/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-6">
-                        <div>
-                            <span class="text-xs text-gold-400 font-bold uppercase tracking-widest">Ambience</span>
-                            <h4 class="font-serif text-xl font-bold text-white">Spacious Shopping Area</h4>
-                        </div>
-                    </div>
-                </div>
-
-                <div onclick="openLightbox('WhatsApp Image 2026-09-25 at 3.02.12 PM_2.jpeg', 'Special Collections')" class="group relative h-80 rounded-3xl overflow-hidden cursor-pointer shadow-xl border border-royal-700">
-                    <img src="https://placehold.co/600x600/1b365d/ffffff?text=Special+Wear" alt="Special Collections" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" onerror="this.src='https://placehold.co/600x600/1b365d/ffffff?text=Special+Wear'">
-                    <div class="absolute inset-0 bg-gradient-to-t from-royal-950/80 via-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-6">
-                        <div>
-                            <span class="text-xs text-gold-400 font-bold uppercase tracking-widest">Exquisite</span>
-                            <h4 class="font-serif text-xl font-bold text-white">Bridal &amp; Festive Display</h4>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="tailoring" class="py-24 bg-royal-50 px-4 sm:px-6 lg:px-8 border-y border-royal-100">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-                <span class="text-royal-600 text-xs font-bold uppercase tracking-widest">Bespoke Perfection</span>
-                <h3 class="font-serif text-4xl sm:text-5xl font-bold text-royal-900 mt-2 mb-6">Custom Tailoring &amp; Saree Setting</h3>
-                <p class="text-slate-700 leading-relaxed mb-6">
-                    At Rose Boutique, we believe true elegance lies in the perfect fit. Our master tailors provide expert adjustments, custom khurta stitching, blouse stitching, and professional saree pico/fall setting right here in Kathmandu.
-                </p>
-                <ul class="space-y-4 mb-8">
-                    <li class="flex items-center gap-3 text-slate-800 font-medium">
-                        <i class="fa-solid fa-circle-check text-gold-600 text-lg"></i> Custom Blouse Stitching with Precision Fit
-                    </li>
-                    <li class="flex items-center gap-3 text-slate-800 font-medium">
-                        <i class="fa-solid fa-circle-check text-gold-600 text-lg"></i> Professional Saree Pico &amp; Fall Attachments
-                    </li>
-                    <li class="flex items-center gap-3 text-slate-800 font-medium">
-                        <i class="fa-solid fa-circle-check text-gold-600 text-lg"></i> Personalized Styling Consultations for Weddings &amp; Events
-                    </li>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link active" href="#home">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#collection">Collection</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
                 </ul>
-                <button onclick="openBookingModal()" class="px-8 py-4 rounded-xl bg-royal-900 hover:bg-royal-800 text-white font-bold uppercase tracking-wider text-xs shadow-xl transition flex items-center gap-3">
-                    <i class="fa-regular fa-calendar-check text-gold-400 text-lg"></i> Schedule Tailoring Consultation
-                </button>
             </div>
+        </div>
+    </nav>
 
-            <!-- Interactive Size Estimator Card -->
-            <div class="bg-white rounded-3xl p-8 shadow-xl border border-slate-200">
-                <h4 class="font-serif text-2xl font-bold text-royal-900 mb-2">Quick Khurta Size Estimator</h4>
-                <p class="text-slate-600 text-xs mb-6">Find your standard ready-made size or book a custom measurement session at our Chapali Road store.</p>
+    <!-- Hero Section -->
+    <section id="home" class="hero-section">
+        <div class="container fade-up">
+            <h1 class="display-3 fw-bold mb-4 font-playfair">Elegance in Every Thread</h1>
+            <p class="lead mb-5 fs-4">Discover our premium collection of bespoke tailoring and designer wear.</p>
+            <a href="#collection" class="btn btn-custom">Explore Collection</a>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="py-5 bg-light-custom">
+        <div class="container py-5 text-center fade-up">
+            <h2 class="section-title">About Us</h2>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <p class="fs-5 text-muted lh-lg">
+                        Welcome to Rose Boutique & Collection. We specialize in curating the finest fabrics, elegant khurthas, and bespoke designer wear. With a passion for fashion and a commitment to quality, we bring you styles that celebrate tradition while embracing modern trends. Step into our world of elegance and find your perfect outfit today.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Collection Section -->
+    <section id="collection" class="py-5">
+        <div class="container py-5 text-center">
+            <h2 class="section-title">Our Collection</h2>
+            <div class="row g-4 mt-3">
+                <div class="col-lg-4 col-md-6 fade-up">
+                    <div class="gallery-card">
+                        <img src="WhatsApp Image 2026-09-25 at 3.02.07 PM.jpeg" alt="Premium Fabrics">
+                        <div class="overlay"><span>Premium Fabrics</span></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 fade-up" style="transition-delay: 0.1s;">
+                    <div class="gallery-card">
+                        <img src="WhatsApp Image 2026-09-25 at 3.02.09 PM.jpeg" alt="Designer Wear">
+                        <div class="overlay"><span>Designer Wear</span></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 fade-up" style="transition-delay: 0.2s;">
+                    <div class="gallery-card">
+                        <img src="WhatsApp Image 2026-09-25 at 3.02.11 PM (2).jpeg" alt="Elegant Khurthas">
+                        <div class="overlay"><span>Elegant Khurthas</span></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 fade-up">
+                    <div class="gallery-card">
+                        <img src="WhatsApp Image 2026-09-25 at 3.02.11 PM.jpeg" alt="Festive Collection">
+                        <div class="overlay"><span>Festive Collection</span></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 fade-up" style="transition-delay: 0.1s;">
+                    <div class="gallery-card">
+                        <img src="WhatsApp Image 2026-09-25 at 3.02.12 PM.jpeg" alt="Bespoke Tailoring">
+                        <div class="overlay"><span>Bespoke Tailoring</span></div>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 fade-up" style="transition-delay: 0.2s;">
+                    <div class="gallery-card">
+                        <img src="WhatsApp Image 2026-09-25 at 3.02.11 PM (1).jpeg" alt="New Arrivals">
+                        <div class="overlay"><span>New Arrivals</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-5 bg-light-custom">
+        <div class="container py-5">
+            <div class="text-center mb-5 fade-up">
+                <h2 class="section-title">Get In Touch</h2>
+            </div>
+            <div class="row g-5">
+                <div class="col-lg-5 fade-up">
+                    <div class="contact-info-box">
+                        <h4 class="font-playfair mb-4 text-primary-custom">Visit Our Store</h4>
+                        
+                        <div class="d-flex align-items-center contact-item">
+                            <div class="icon-box me-4"><i class="fas fa-phone-alt"></i></div>
+                            <div>
+                                <h5 class="mb-1">Call / WhatsApp</h5>
+                                <a href="tel:9841024182" class="text-decoration-none text-muted">9841024182</a>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex align-items-center contact-item">
+                            <div class="icon-box me-4"><i class="fas fa-envelope"></i></div>
+                            <div>
+                                <h5 class="mb-1">Email Us</h5>
+                                <a href="mailto:Boutiquerose320@gmail.com" class="text-decoration-none text-muted">Boutiquerose320@gmail.com</a>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center contact-item mb-5">
+                            <div class="icon-box me-4"><i class="fas fa-map-marker-alt"></i></div>
+                            <div>
+                                <h5 class="mb-1">Location</h5>
+                                <a href="https://maps.app.goo.gl/b2kGkrHaSieGePui9" target="_blank" class="text-decoration-none text-muted">Kathmandu, Nepal</a>
+                            </div>
+                        </div>
+
+                        <h5 class="font-playfair mb-3 text-primary-custom">Follow Us</h5>
+                        <div class="contact-social">
+                            <a href="https://wa.me/9779841024182" target="_blank" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+                            <a href="#" target="_blank" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                            <a href="#" target="_blank" title="TikTok"><i class="fab fa-tiktok"></i></a>
+                        </div>
+                    </div>
+                </div>
                 
-                <form id="size-estimator-form" onsubmit="calculateSize(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Bust Measurement (inches)</label>
-                        <input type="number" id="bust-input" placeholder="e.g. 36" required="" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-royal-900 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-700 mb-1">Waist Measurement (inches)</label>
-                        <input type="number" id="waist-input" placeholder="e.g. 30" required="" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-royal-900 text-sm">
-                    </div>
-                    <button type="submit" class="w-full py-3.5 rounded-xl bg-gold-500 hover:bg-gold-400 text-royal-950 font-bold uppercase tracking-wider text-xs shadow transition">
-                        Recommend Size
-                    </button>
-                </form>
-
-                <div id="size-result" class="hidden mt-6 p-4 rounded-xl bg-royal-900 text-white text-center animate-fade-in">
-                    <p class="text-xs text-gold-400 uppercase tracking-widest font-bold">Recommended Standard Size:</p>
-                    <h5 id="size-output" class="font-serif text-3xl font-bold my-1">SIZE M</h5>
-                    <p class="text-xs text-slate-300">Visit Rose Boutique on Chapali Road for exact bespoke tailoring.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="download-section" class="py-24 bg-royal-900 text-white px-4 sm:px-6 lg:px-8 border-y border-royal-700 relative overflow-hidden">
-        <div class="absolute -right-20 -bottom-20 w-96 h-96 rounded-full bg-gold-500/10 blur-3xl pointer-events-none"></div>
-        <div class="max-w-4xl mx-auto text-center space-y-6 relative z-10">
-            <span class="inline-block py-1.5 px-5 rounded-full bg-gold-500/20 border border-gold-400/40 text-gold-400 text-xs font-semibold uppercase tracking-widest">
-                Instant Source Code Package
-            </span>
-            <h3 class="font-serif text-4xl sm:text-5xl font-bold text-white">Download All Website Files in a ZIP</h3>
-            <p class="text-slate-300 text-base max-w-2xl mx-auto leading-relaxed">
-                Click the button below to package this entire boutique web application (HTML, advanced CSS styles, interactive JavaScript, and assets structure) into a standalone `.zip` archive ready for offline deployment.
-            </p>
-            <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button onclick="downloadBoutiqueZip()" id="zip-download-btn" class="w-full sm:w-auto px-10 py-5 rounded-2xl bg-gold-500 hover:bg-gold-400 text-royal-950 font-bold uppercase tracking-wider text-sm shadow-2xl transition transform hover:-translate-y-0.5 flex items-center justify-center gap-3" disabled="">
-                    <i class="fa-solid fa-file-zipper text-xl"></i> Download Rose-Boutique-Project.zip
-                </button>
-            </div>
-            <p id="zip-status" class="text-xs text-gold-400 h-6 font-medium">Initializing ZIP builder and bundling project files...</p>
-        </div>
-    </section>
-
-    <section class="py-24 bg-white px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
-            <div class="text-center max-w-2xl mx-auto mb-16">
-                <span class="text-royal-600 text-xs font-bold uppercase tracking-widest">Loved by Our Patrons</span>
-                <h3 class="font-serif text-4xl sm:text-5xl font-bold text-royal-900 mt-2 mb-4">What Our Clients Say</h3>
-                <p class="text-slate-600 text-sm">Read glowing reviews from ladies across Kathmandu who trust Rose Boutique for their ethnic wardrobe.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div class="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex flex-col justify-between shadow-sm">
-                    <div>
-                        <div class="flex text-gold-500 gap-1 text-sm mb-4">
-                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-                        </div>
-                        <p class="text-slate-700 italic text-sm mb-6">"Rose Boutique has the most breathtaking collection of sarees in Kathmandu! The staff was extremely helpful in matching my blouse and setting the pico."</p>
-                    </div>
-                    <div class="flex items-center gap-3 border-t border-slate-200 pt-4">
-                        <div class="w-10 h-10 rounded-full bg-royal-900 text-gold-400 font-bold flex items-center justify-center font-serif text-lg">S</div>
-                        <div>
-                            <h5 class="font-bold text-sm text-royal-900">Sunita Shrestha</h5>
-                            <p class="text-[11px] text-slate-500">Maharajgunj, Kathmandu</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex flex-col justify-between shadow-sm">
-                    <div>
-                        <div class="flex text-gold-500 gap-1 text-sm mb-4">
-                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-                        </div>
-                        <p class="text-slate-700 italic text-sm mb-6">"Their readymade khurtas are so comfortable and stylish for daily wear as well as small family gatherings. Highly recommended on Chapali Road!"</p>
-                    </div>
-                    <div class="flex items-center gap-3 border-t border-slate-200 pt-4">
-                        <div class="w-10 h-10 rounded-full bg-royal-900 text-gold-400 font-bold flex items-center justify-center font-serif text-lg">P</div>
-                        <div>
-                            <h5 class="font-bold text-sm text-royal-900">Pooja Karki</h5>
-                            <p class="text-[11px] text-slate-500">Budhanilkantha, Kathmandu</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-slate-50 p-8 rounded-3xl border border-slate-200 flex flex-col justify-between shadow-sm">
-                    <div>
-                        <div class="flex text-gold-500 gap-1 text-sm mb-4">
-                            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-                        </div>
-                        <p class="text-slate-700 italic text-sm mb-6">"Exceptional tailoring quality! I got my wedding guest outfit stitched here and received compliments all night long. Thank you Rose Boutique."</p>
-                    </div>
-                    <div class="flex items-center gap-3 border-t border-slate-200 pt-4">
-                        <div class="w-10 h-10 rounded-full bg-royal-900 text-gold-400 font-bold flex items-center justify-center font-serif text-lg">A</div>
-                        <div>
-                            <h5 class="font-bold text-sm text-royal-900">Anjali Thapa</h5>
-                            <p class="text-[11px] text-slate-500">Bansbari, Kathmandu</p>
-                        </div>
+                <div class="col-lg-7 fade-up" style="transition-delay: 0.2s;">
+                    <div class="map-container h-100">
+                        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d113032.64621396825!2d85.25700445774577!3d27.708942725838042!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39eb198a307baabf%3A0xb5137c1bf18db1ea!2sKathmandu%2044600%2C%20Nepal!5e0!3m2!1sen!2sus!4v1690000000000!5m2!1sen!2sus" width="100%" height="100%" style="border:0; min-height: 450px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="contact" class="py-24 bg-slate-900 text-white px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div>
-                <span class="text-gold-400 text-xs font-bold uppercase tracking-widest">Connect With Us</span>
-                <h3 class="font-serif text-4xl sm:text-5xl font-bold text-white mt-2 mb-6">Visit Rose Boutique</h3>
-                <p class="text-slate-300 text-sm sm:text-base mb-8 leading-relaxed">
-                    Drop by our boutique on Chapali Road to explore our newest arrivals in person or schedule a bespoke consultation with our expert tailors.
-                </p>
+    <!-- Floating WhatsApp Button -->
+    <a href="https://wa.me/9779841024182" class="whatsapp-float" target="_blank" title="Chat with us on WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
 
-                <div class="space-y-6">
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-royal-800 text-gold-400 flex items-center justify-center shrink-0 border border-royal-700 text-xl">
-                            <i class="fa-solid fa-location-dot"></i>
-                        </div>
-                        <div>
-                            <h5 class="font-bold text-white text-base">Location</h5>
-                            <p class="text-slate-300 text-sm mt-0.5">Chapali Road, Kathmandu, Nepal</p>
-                            <a href="https://maps.app.goo.gl/aygq814kptHaYER18" target="_blank" class="inline-flex items-center gap-1.5 text-gold-400 hover:text-gold-300 text-xs font-bold uppercase tracking-wider mt-2">
-                                <i class="fa-solid fa-map-location-dot"></i> Open Google Maps Direction
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-royal-800 text-gold-400 flex items-center justify-center shrink-0 border border-royal-700 text-xl">
-                            <i class="fa-solid fa-phone"></i>
-                        </div>
-                        <div>
-                            <h5 class="font-bold text-white text-base">Phone &amp; WhatsApp</h5>
-                            <p class="text-slate-300 text-sm mt-0.5">9841024182</p>
-                            <a href="https://wa.me/9779841024182?text=Hello%20Rose%20Boutique," target="_blank" class="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 text-xs font-bold uppercase tracking-wider mt-2">
-                                <i class="fa-brands fa-whatsapp text-base"></i> Chat Now on WhatsApp
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="flex items-start gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-royal-800 text-gold-400 flex items-center justify-center shrink-0 border border-royal-700 text-xl">
-                            <i class="fa-regular fa-clock"></i>
-                        </div>
-                        <div>
-                            <h5 class="font-bold text-white text-base">Working Hours</h5>
-                            <p class="text-slate-300 text-sm mt-0.5">Sunday – Friday: 10:00 AM – 7:00 PM</p>
-                            <p class="text-xs text-gold-400 mt-1">Saturday: Open by appointment</p>
-                        </div>
-                    </div>
-                </div>
+    <!-- Footer -->
+    <footer class="text-white text-center py-5">
+        <div class="container">
+            <img src="WhatsApp Image 2026-09-25 at 2.43.47 PM_2.jpeg" alt="Logo" width="60" class="mb-3 rounded-circle bg-white p-1">
+            <h3 class="font-playfair mb-4">Rose Boutique & Collection</h3>
+            <div class="footer-social mb-4">
+                <a href="https://wa.me/9779841024182" target="_blank"><i class="fab fa-whatsapp"></i></a>
+                <a href="#" target="_blank"><i class="fab fa-facebook-f"></i></a>
+                <a href="#" target="_blank"><i class="fab fa-tiktok"></i></a>
             </div>
-
-            <!-- Contact Inquiry Form -->
-            <div class="bg-royal-950 p-8 sm:p-10 rounded-3xl border border-royal-800 shadow-2xl">
-                <h4 class="font-serif text-2xl font-bold text-white mb-2">Send an Online Inquiry</h4>
-                <p class="text-slate-400 text-xs mb-6">Fill out the form below and our team will respond promptly via phone or WhatsApp.</p>
-
-                <form onsubmit="handleInquirySubmit(event)" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Your Full Name</label>
-                        <input type="text" id="inquiry-name" placeholder="Enter your name" required="" class="w-full px-4 py-3 rounded-xl bg-royal-900 border border-royal-700 text-white placeholder-slate-500 focus:outline-none focus:border-gold-400 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Phone / WhatsApp Number</label>
-                        <input type="tel" id="inquiry-phone" placeholder="e.g. 9841024182" required="" class="w-full px-4 py-3 rounded-xl bg-royal-900 border border-royal-700 text-white placeholder-slate-500 focus:outline-none focus:border-gold-400 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Your Message or Inquiry</label>
-                        <textarea id="inquiry-msg" rows="4" placeholder="Tell us about the saree, khurta, or tailoring you need..." required="" class="w-full px-4 py-3 rounded-xl bg-royal-900 border border-royal-700 text-white placeholder-slate-500 focus:outline-none focus:border-gold-400 text-sm"></textarea>
-                    </div>
-                    <button type="submit" class="w-full py-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-royal-950 font-bold uppercase tracking-wider text-xs shadow-xl transition">
-                        Submit Inquiry
-                    </button>
-                </form>
-            </div>
-        </div>
-    </section>
-
-    <footer class="bg-royal-900 text-slate-400 py-12 border-t border-royal-800 text-center text-xs">
-        <div class="max-w-7xl mx-auto px-4 space-y-4">
-            <div class="flex items-center justify-center gap-3">
-                <div class="w-10 h-10 rounded-full overflow-hidden border border-gold-400 bg-white">
-                    <img src="WhatsApp Image 2026-09-25 at 2.43.47 PM_3.jpeg" alt="Logo" class="w-full h-full object-cover">
-                </div>
-                <h5 class="font-serif text-xl font-bold text-white tracking-wider">ROSE BOUTIQUE</h5>
-            </div>
-            <p>Chapali Road, Kathmandu, Nepal • Phone / WhatsApp: <span class="text-white font-semibold">9841024182</span></p>
-            <p class="text-slate-500">© 2026 Rose Boutique. All Rights Reserved. Crafted for Fine Ladies Ethnic Fashion.</p>
+            <hr class="border-secondary mb-4">
+            <p class="mb-0 text-white-50">&copy; 2026 Rose Boutique & Collection. All Rights Reserved.</p>
         </div>
     </footer>
 
-    <!-- Booking Modal -->
-    <div id="booking-modal" class="fixed inset-0 z-50 hidden bg-royal-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-royal-900 border border-royal-700 w-full max-w-lg rounded-3xl p-8 text-white relative shadow-2xl animate-fade-in">
-            <button onclick="closeBookingModal()" class="absolute top-6 right-6 text-slate-400 hover:text-white text-xl">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            <h4 class="font-serif text-3xl font-bold text-white mb-2">Book a Fitting Appointment</h4>
-            <p class="text-slate-300 text-xs mb-6">Schedule your visit to Rose Boutique on Chapali Road for personalized styling and measurements.</p>
-            
-            <form onsubmit="handleBookingSubmit(event)" class="space-y-4 text-left">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Your Full Name</label>
-                    <input type="text" id="book-name" required="" class="w-full px-4 py-3 rounded-xl bg-royal-950 border border-royal-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-gold-400">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Phone Number</label>
-                    <input type="tel" id="book-phone" required="" placeholder="9841024182" class="w-full px-4 py-3 rounded-xl bg-royal-950 border border-royal-700 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-gold-400">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Preferred Date</label>
-                        <input type="date" id="book-date" required="" class="w-full px-4 py-3 rounded-xl bg-royal-950 border border-royal-700 text-white text-sm focus:outline-none focus:border-gold-400">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Service Required</label>
-                        <select id="book-service" class="w-full px-4 py-3 rounded-xl bg-royal-950 border border-royal-700 text-white text-sm focus:outline-none focus:border-gold-400">
-                            <option>Saree Shopping</option>
-                            <option>Khurta Set Shopping</option>
-                            <option>Custom Tailoring / Blouse</option>
-                            <option>General Fitting</option>
-                        </select>
-                    </div>
-                </div>
-                <button type="submit" class="w-full py-4 rounded-xl bg-gold-500 hover:bg-gold-400 text-royal-950 font-bold uppercase tracking-wider text-xs shadow-xl transition mt-4">
-                    Confirm Appointment Booking
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Lightbox Modal -->
-    <div id="lightbox-modal" class="fixed inset-0 z-50 hidden bg-royal-950/95 backdrop-blur-md flex items-center justify-center p-4" onclick="closeLightbox()">
-        <div class="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center" onclick="event.stopPropagation()">
-            <button onclick="closeLightbox()" class="absolute -top-12 right-0 text-white hover:text-gold-400 text-2xl">
-                <i class="fa-solid fa-xmark"></i> Close
-            </button>
-            <img id="lightbox-img" src="" alt="Expanded View" class="max-h-[75vh] w-auto rounded-2xl shadow-2xl border border-royal-700 object-contain">
-            <h4 id="lightbox-caption" class="font-serif text-2xl font-bold text-white mt-4 text-center"></h4>
-        </div>
-    </div>
-
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-6 right-6 z-50 hidden bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border border-emerald-500 animate-fade-in">
-        <i class="fa-solid fa-circle-check text-xl"></i>
-        <div>
-            <h5 class="font-bold text-sm" id="toast-title">Success</h5>
-            <p class="text-xs text-emerald-100" id="toast-msg">Action completed successfully.</p>
-        </div>
-    </div>
-
+    <!-- Bootstrap Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Smooth Scrolling & Animation JS -->
     <script>
-        // Mobile Menu Toggle
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobile-menu');
-            const icon = document.getElementById('menu-icon');
-            menu.classList.toggle('hidden');
-            icon.classList.toggle('fa-bars');
-            icon.classList.toggle('fa-xmark');
-        }
-
-        // Collection Filtering
-        function filterCollection(category) {
-            const buttons = document.querySelectorAll('.filter-btn');
-            buttons.forEach(btn => {
-                if (btn.getAttribute('data-filter') === category) {
-                    btn.className = "filter-btn px-5 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider bg-royal-900 text-white shadow-md transition";
-                } else {
-                    btn.className = "filter-btn px-5 py-2.5 rounded-xl font-semibold text-xs uppercase tracking-wider bg-slate-100 hover:bg-royal-100 text-royal-900 transition";
-                }
-            });
-
-            const cards = document.querySelectorAll('.product-card');
-            cards.forEach(card => {
-                const cat = card.getAttribute('data-category');
-                if (category === 'all' || cat === category) {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        }
-
-        // Lightbox Functions
-        function openLightbox(imgSrc, captionText) {
-            const modal = document.getElementById('lightbox-modal');
-            const img = document.getElementById('lightbox-img');
-            const caption = document.getElementById('lightbox-caption');
-            img.src = imgSrc;
-            caption.textContent = captionText;
-            modal.classList.remove('hidden');
-        }
-
-        function closeLightbox() {
-            document.getElementById('lightbox-modal').classList.add('hidden');
-        }
-
-        // Booking Modal Functions
-        function openBookingModal() {
-            document.getElementById('booking-modal').classList.remove('hidden');
-        }
-
-        function closeBookingModal() {
-            document.getElementById('booking-modal').classList.add('hidden');
-        }
-
-        function handleBookingSubmit(event) {
-            event.preventDefault();
-            const name = document.getElementById('book-name').value;
-            const phone = document.getElementById('book-phone').value;
-            const date = document.getElementById('book-date').value;
-            const service = document.getElementById('book-service').value;
-
-            closeBookingModal();
-            showToast("Appointment Booked!", `Thank you ${name}. We have reserved your slot for ${service} on ${date}.`);
-            
-            setTimeout(() => {
-                const waUrl = `https://wa.me/9779841024182?text=Hello%20Rose%20Boutique,%20I%20have%20booked%20an%20appointment%20for%20${encodeURIComponent(service)}%20on%20${date}.%20My%20name%20is%20${encodeURIComponent(name)}%20(${phone}).`;
-                window.open(waUrl, '_blank');
-            }, 1200);
-        }
-
-        // Size Estimator Calculator
-        function calculateSize(event) {
-            event.preventDefault();
-            const bust = parseFloat(document.getElementById('bust-input').value);
-            const waist = parseFloat(document.getElementById('waist-input').value);
-            const resultBox = document.getElementById('size-result');
-            const output = document.getElementById('size-output');
-
-            let size = "SIZE M (36-38)";
-            if (bust < 34 || waist < 28) {
-                size = "SIZE S (32-34)";
-            } else if (bust > 40 || waist > 34) {
-                size = "SIZE L / XL (40+)";
-            }
-
-            output.textContent = size;
-            resultBox.classList.remove('hidden');
-        }
-
-        // Inquiry Form Handler
-        function handleInquirySubmit(event) {
-            event.preventDefault();
-            const name = document.getElementById('inquiry-name').value;
-            const phone = document.getElementById('inquiry-phone').value;
-            const msg = document.getElementById('inquiry-msg').value;
-
-            showToast("Inquiry Sent!", "Thank you for reaching out. Redirecting to WhatsApp...");
-            
-            setTimeout(() => {
-                const waUrl = `https://wa.me/9779841024182?text=Hello%20Rose%20Boutique,%20My%20name%20is%20${encodeURIComponent(name)}%20(${phone}).%20Inquiry:%20${encodeURIComponent(msg)}`;
-                window.open(waUrl, '_blank');
-            }, 1000);
-        }
-
-        // Toast Helper
-        function showToast(title, msg) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-title').textContent = title;
-            document.getElementById('toast-msg').textContent = msg;
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 4000);
-        }
-
-        // Instant ZIP Creator & Downloader Utility
-        async function downloadBoutiqueZip() {
-            const statusEl = document.getElementById('zip-status');
-            const btnEl = document.getElementById('zip-download-btn');
-            statusEl.textContent = "Initializing ZIP builder and bundling project files...";
-            btnEl.disabled = true;
-
-            try {
-                const zip = new JSZip();
-
-                // 1. Create Folder Structure
-                const assetsFolder = zip.folder("assets");
-                const cssFolder = zip.folder("css");
-                const jsFolder = zip.folder("js");
-
-                // 2. Add main index.html file
-                const htmlContent = document.documentElement.outerHTML;
-                zip.file("index.html", htmlContent);
-
-                // 3. Add README documentation file
-                const readmeContent = `# Rose Boutique - Kathmandu\n\nOfficial website and bespoke ethnic fashion store located on Chapali Road, Kathmandu.\n\n- Phone / WhatsApp: 9841024182\n- Hours: Sunday - Friday (10:00 AM - 7:00 PM)\n- Location: Chapali Road, Kathmandu, Nepal\n\nFiles included:\n- index.html: Complete self-contained single-page web app\n- assets/: Store photos and logo image files\n`;
-                zip.file("README.md", readmeContent);
-
-                statusEl.textContent = "Packing images and code assets into archive...";
-
-                // 4. Bundle local image assets referenced in the app
-                const imageFiles = [
-                    "WhatsApp Image 2026-09-25 at 2.43.47 PM_3.jpeg",
-                    "WhatsApp Image 2026-09-25 at 3.02.07 PM_2.jpeg",
-                    "WhatsApp Image 2026-09-25 at 3.02.09 PM_2.jpeg",
-                    "WhatsApp Image 2026-09-25 at 3.02.10 PM_2.jpeg",
-                    "WhatsApp Image 2026-09-25 at 3.02.11 PM_2.jpeg",
-                    "WhatsApp Image 2026-09-25 at 3.02.11 PM (1)_2.jpeg",
-                    "WhatsApp Image 2026-09-25 at 3.02.12 PM_2.jpeg"
-                ];
-
-                for (const imgName of imageFiles) {
-                    try {
-                        const response = await fetch(imgName);
-                        if (response.ok) {
-                            const blob = await response.blob();
-                            assetsFolder.file(imgName, blob);
-                        }
-                    } catch (e) {
-                        console.warn("Asset fetch fallback for:", imgName);
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    // Close mobile menu if open
+                    const navbarCollapse = document.getElementById('navbarNav');
+                    if (navbarCollapse.classList.contains('show')) {
+                        new bootstrap.Collapse(navbarCollapse).hide();
                     }
+                    
+                    window.scrollTo({
+                        top: target.offsetTop - 70, // Adjust for fixed navbar
+                        behavior: 'smooth'
+                    });
                 }
+            });
+        });
 
-                statusEl.textContent = "Compressing .zip archive...";
-                const content = await zip.generateAsync({ type: "blob" });
-                
-                statusEl.textContent = "Download starting successfully!";
-                saveAs(content, "Rose-Boutique-Project.zip");
+        // Scroll Animation Observer
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
 
-                setTimeout(() => {
-                    statusEl.textContent = "";
-                    btnEl.disabled = false;
-                }, 3000);
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    // Update active nav link
+                    updateActiveNavLink(entry.target.id);
+                }
+            });
+        }, observerOptions);
 
-            } catch (err) {
-                console.error(err);
-                statusEl.textContent = "Error generating ZIP. Please try again.";
-                btnEl.disabled = false;
-            }
+        document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+        
+        // Sections for scroll spy
+        const sections = document.querySelectorAll('section');
+        const observerNav = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    updateActiveNavLink(entry.target.id);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        sections.forEach(section => observerNav.observe(section));
+
+        function updateActiveNavLink(id) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${id}`) {
+                    link.classList.add('active');
+                }
+            });
         }
     </script>
-
-</body></html>
+</body>
+</html>
